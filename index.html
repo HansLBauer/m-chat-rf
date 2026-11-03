@@ -1,0 +1,1996 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>M-CHAT-R & M-CHAT-R/F — Calculadora Clínica</title>
+
+
+  <!-- Motor Nativo de PDF Vetorial (jsPDF + AutoTable) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-light: #e0f2fe;
+      --border: #cbd5e1;
+      --low: #16a34a;
+      --low-bg: #dcfce7;
+      --med: #d97706;
+      --med-bg: #fef3c7;
+      --high: #dc2626;
+      --high-bg: #fee2e2;
+    }
+
+
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 80px;
+    }
+
+
+    /* CABEÇALHO FIXO */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    }
+
+
+    .header-inner {
+      max-width: 940px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 0.76rem;
+      color: #94a3b8;
+    }
+
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+
+    .btn-toggle {
+      background: #334155;
+      color: #ffffff;
+      border: 1px solid #475569;
+    }
+
+
+    .btn-toggle.active {
+      background: var(--primary);
+      border-color: #38bdf8;
+    }
+
+
+    .btn-app {
+      background: #10b981;
+      color: #ffffff;
+    }
+
+
+    .btn-pdf {
+      background: #7c3aed;
+      color: #ffffff;
+    }
+
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+
+    .btn-reset {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+
+    /* BARRA DE PONTUAÇÃO */
+    .score-bar {
+      max-width: 940px;
+      margin: 10px auto 0;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #1e293b;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.86rem;
+    }
+
+
+    .score-bar.hidden {
+      display: none;
+    }
+
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.78rem;
+      display: inline-block;
+    }
+
+
+    .badge-low { background: var(--low-bg); color: var(--low); }
+    .badge-med { background: var(--med-bg); color: var(--med); }
+    .badge-high { background: var(--high-bg); color: var(--high); }
+    .badge-neutral { background: var(--primary-light); color: var(--primary-dark); }
+
+
+    /* CONTAINER PRINCIPAL */
+    main {
+      max-width: 940px;
+      margin: 16px auto;
+      padding: 0 12px;
+    }
+
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+
+    .section-title {
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+
+    /* Pilha vertical de caixas horizontais (uma em cima da outra) */
+    .stack-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #475569;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+
+    .pill-btn {
+      text-align: center;
+      padding: 9px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: #f8fafc;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.12s;
+      color: #334155;
+    }
+
+
+    .pill-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+
+    /* ABAS DE NAVEGAÇÃO */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+
+    .tab-btn {
+      flex: 1;
+      padding: 11px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: #475569;
+    }
+
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+
+    /* CARTÕES DE QUESTÃO (M-CHAT-R e M-CHAT-R/F) */
+    .q-card {
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--primary);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+      background: #ffffff;
+    }
+
+
+    .q-card.risk-visible {
+      border-left-color: var(--high);
+    }
+
+
+    .q-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+
+    /* Impede que "Questão #" quebre linha */
+    .q-num {
+      font-weight: 800;
+      font-size: 0.82rem;
+      color: var(--primary-dark);
+      background: var(--primary-light);
+      padding: 4px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+
+
+    .q-domain {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-align: right;
+      line-height: 1.3;
+    }
+
+
+    .q-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      line-height: 1.4;
+      margin: 6px 0;
+    }
+
+
+    .q-example-row {
+      font-size: 0.83rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      line-height: 1.45;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+
+    /* Botão Unicode ⓘ (U+24D8) */
+    .info-circle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      border: 1px solid #7dd3fc;
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+
+    .info-circle-btn:hover,
+    .info-circle-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+
+    .more-examples-panel {
+      background: #f8fafc;
+      border: 1px dashed #94a3b8;
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 6px 0 12px;
+      font-size: 0.82rem;
+      color: #1e293b;
+      line-height: 1.45;
+    }
+
+
+    .more-examples-panel ul {
+      margin: 4px 0 0;
+      padding-left: 18px;
+    }
+
+
+    .more-examples-panel li {
+      margin-bottom: 4px;
+    }
+
+
+    .opt-row {
+      display: flex;
+      gap: 10px;
+    }
+
+
+    .opt-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: #f8fafc;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      color: #1e293b;
+      transition: all 0.12s;
+    }
+
+
+    .opt-btn.sel-blue {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+
+    .opt-btn.sel-slate {
+      background: #334155;
+      color: #ffffff;
+      border-color: #334155;
+    }
+
+
+    .opt-btn.sel-pass {
+      background: var(--low);
+      color: #ffffff;
+      border-color: var(--low);
+    }
+
+
+    .opt-btn.sel-fail {
+      background: var(--high);
+      color: #ffffff;
+      border-color: var(--high);
+    }
+
+
+    /* FLUXOGRAMA NA 2ª ETAPA (Empilhado na horizontal) */
+    .flow-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin: 10px 0 12px;
+    }
+
+
+    .flow-header {
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+
+
+    .flow-step {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--primary);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #eff6ff;
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+
+    .flow-step.neutral-step {
+      background: #ffffff;
+      border-left-color: var(--primary);
+    }
+
+
+    .flow-step.pass-visible {
+      border-left-color: var(--low);
+      background: #f0fdf4;
+    }
+
+
+    .flow-step.fail-visible {
+      border-left-color: var(--high);
+      background: #fef2f2;
+    }
+
+
+    /* CARTÃO DE TRANSIÇÃO / RESULTADO NO RODAPÉ DAS ETAPAS */
+    .stage-footer {
+      border: 2px solid var(--primary);
+      background: #f0f9ff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+
+    .stage-footer.low-visible {
+      border-color: var(--low);
+      background: #f0fdf4;
+    }
+
+
+    .stage-footer.med-visible {
+      border-color: var(--med);
+      background: #fffbeb;
+    }
+
+
+    .stage-footer.high-visible {
+      border-color: var(--high);
+      background: #fef2f2;
+    }
+
+
+    /* PRÉ-VISUALIZAÇÃO DO RELATÓRIO E IMPRESSÃO NATIVA */
+    .report-preview {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 14px;
+    }
+
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 10px;
+    }
+
+
+    .report-table th,
+    .report-table td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 8px;
+      text-align: left;
+    }
+
+
+    .report-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+    }
+
+
+    @media print {
+      header, .tabs, .no-print {
+        display: none !important;
+      }
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+      main {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #tabSection1, #tabSection2 {
+        display: none !important;
+      }
+      #tabSection3 {
+        display: block !important;
+      }
+      .report-preview {
+        border: none;
+        padding: 0;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>M-CHAT-R & M-CHAT-R/F — Calculadora Clínica</h1>
+      <p>Triagem de TEA (16 a 30 meses) • Algoritmo Oficial em 2 Etapas</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-toggle active" id="btnToggleScore" onclick="toggleScore()">
+        👁️ Ocultar Pontuação
+      </button>
+      <button class="btn btn-reset" onclick="resetQuestionnaire()">
+        🔄 Limpar
+      </button>
+    </div>
+  </div>
+
+
+  <div class="score-bar" id="scoreBar">
+    <div>
+      <strong id="lblProgress">Respondidas: 0/20</strong>
+      <span style="margin-left: 12px;">1ª Etapa (M-CHAT-R): <strong id="lblScore1">0</strong> pts</span>
+      <span id="wrapScore2" style="margin-left: 12px; display: none;">2ª Etapa (M-CHAT-R/F): <strong id="lblScore2">0</strong> pts</span>
+    </div>
+    <div>
+      <span class="badge badge-low" id="lblRiskBadge">Baixo Risco (0 pts)</span>
+    </div>
+  </div>
+</header>
+
+
+<main>
+  <!-- BLOCO DE IDENTIFICAÇÃO -->
+  <div class="card no-print">
+    <div class="section-title">1. Identificação de Quem Está Aplicando</div>
+    <div class="grid-2" style="margin-bottom: 12px;">
+      <div>
+        <label>Nome de quem está aplicando</label>
+        <input type="text" id="inApplicatorName" placeholder="Digite o nome completo" oninput="refreshUI()" />
+      </div>
+      <div>
+        <label>É profissional da área da saúde?</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="pill-btn active" id="pillHealthYes" onclick="setHealthProfessional(true)">Sim</div>
+          <div class="pill-btn" id="pillHealthNo" onclick="setHealthProfessional(false)">Não</div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="boxHealthDetails" class="grid-2" style="margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+      <div>
+        <label>Qual a profissão / especialidade?</label>
+        <input type="text" id="inProfession" placeholder="Ex.: Médico, Pediatra, Enfermeiro, Psicólogo" oninput="refreshUI()" />
+      </div>
+      <div>
+        <label>Número do Conselho (se aplicável)</label>
+        <input type="text" id="inCouncil" placeholder="Ex.: CRM-SP 000000" oninput="refreshUI()" />
+      </div>
+    </div>
+
+
+    <div class="section-title">2. Dados da Criança e Cálculo da Idade</div>
+    <div class="grid-2" style="margin-bottom: 12px;">
+      <div>
+        <label>Nome da Criança</label>
+        <input type="text" id="inChildName" placeholder="Nome completo da criança" oninput="refreshUI()" />
+      </div>
+      <div>
+        <label>Como deseja informar a idade?</label>
+        <select id="selAgeMode" onchange="changeAgeMode()">
+          <option value="months">Idade em Meses</option>
+          <option value="ym">Anos e Meses</option>
+          <option value="dob">Data de Nascimento</option>
+        </select>
+      </div>
+    </div>
+
+
+    <div class="grid-2" style="margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+      <!-- Modo 1: Meses -->
+      <div id="boxAgeMonths">
+        <label>Idade em Meses (16 a 30 meses)</label>
+        <input type="number" id="inAgeMonths" min="1" max="60" value="18" oninput="refreshUI()" />
+      </div>
+
+
+      <!-- Modo 2: Anos e Meses -->
+      <div id="boxAgeYM" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div>
+          <label>Anos</label>
+          <input type="number" id="inAgeYears" min="0" max="5" value="1" oninput="refreshUI()" />
+        </div>
+        <div>
+          <label>Meses</label>
+          <input type="number" id="inAgeExtraMonths" min="0" max="11" value="6" oninput="refreshUI()" />
+        </div>
+      </div>
+
+
+      <!-- Modo 3: Data de Nascimento -->
+      <div id="boxAgeDOB" style="display: none;">
+        <label>Data de Nascimento da Criança</label>
+        <input type="date" id="inBirthDate" onchange="refreshUI()" />
+      </div>
+
+
+      <div>
+        <label>Idade Calculada Automaticamente</label>
+        <input type="text" id="outCalculatedAge" readonly style="background: #e2e8f0; font-weight: 800;" value="18 meses" />
+      </div>
+    </div>
+
+
+    <div class="section-title">3. Informante(s) na Consulta</div>
+    <div>
+      <label>Selecione um ou mais informantes simultaneamente:</label>
+      <!-- Linha 1: Mãe, Pai, Responsável -->
+      <div class="grid-3">
+        <div class="pill-btn active" id="pillInfMae" onclick="toggleInformant('Mãe')">Mãe</div>
+        <div class="pill-btn" id="pillInfPai" onclick="toggleInformant('Pai')">Pai</div>
+        <div class="pill-btn" id="pillInfResp" onclick="toggleInformant('Responsável')">Responsável</div>
+      </div>
+      <!-- Linha 2 (Abaixo): Outros -->
+      <div style="margin-top: 8px;">
+        <div class="pill-btn" id="pillInfOutros" onclick="toggleInformant('Outros')">Outros</div>
+      </div>
+      <div id="boxInfOutrosText" style="display: none; margin-top: 8px;">
+        <input type="text" id="inInfOutros" placeholder="Especifique quem é o informante (ex.: Avó, Tia, Cuidador)" oninput="refreshUI()" />
+      </div>
+    </div>
+  </div>
+
+
+  <!-- NAVEGAÇÃO ENTRE ETAPAS -->
+  <div class="tabs no-print">
+    <button class="tab-btn active" id="tabBtn1" onclick="openTab(1)">
+      1ª Etapa: M-CHAT-R (20 itens)
+    </button>
+    <button class="tab-btn" id="tabBtn2" onclick="openTab(2)">
+      2ª Etapa: Seguimento M-CHAT-R/F <span id="spanTab2Count">(0)</span>
+    </button>
+    <button class="tab-btn" id="tabBtn3" onclick="openTab(3)">
+      Relatório Final & PDF
+    </button>
+  </div>
+
+
+  <!-- ABA 1: 1ª ETAPA (M-CHAT-R) -->
+  <section id="tabSection1">
+    <div class="card" style="background: #eff6ff; border-color: #bfdbfe; font-size: 0.85rem;">
+      <strong>Instrução para aplicação:</strong> As perguntas avaliam o comportamento habitual da criança. Toque no ícone <strong>&#x24D8;</strong> ao lado de cada exemplo caso precise apresentar mais situações práticas à família. Se o comportamento ocorreu apenas uma ou duas vezes, marque <strong>NÃO</strong>.
+    </div>
+
+
+    <div id="listStage1"></div>
+
+
+    <!-- Rodapé dinâmico ao final das 20 questões -->
+    <div id="footerStage1" class="stage-footer"></div>
+  </section>
+
+
+  <!-- ABA 2: 2ª ETAPA (SEGUIMENTO M-CHAT-R/F COM QUESTIONÁRIO E FLUXOGRAMA) -->
+  <section id="tabSection2" style="display: none;">
+    <div class="card" id="flowOverviewStage2"></div>
+    <div class="card" id="bannerStage2"></div>
+    <div id="listStage2"></div>
+    <div id="footerStage2" class="stage-footer"></div>
+  </section>
+
+
+  <!-- ABA 3: RESULTADO FINAL E GERADOR DE PDF -->
+  <section id="tabSection3" style="display: none;">
+    <div class="card no-print">
+      <h3 style="margin-top: 0;">Ações do Relatório Final</h3>
+      <p style="font-size: 0.86rem; color: var(--muted); margin-top: 0;">
+        Clique no botão abaixo para baixar o arquivo <strong>.PDF</strong> completo e formatado para entregar à Mãe, Pai ou Responsável.
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+        <button class="btn btn-pdf" onclick="generateVectorPDF()">
+          📄 Baixar Relatório Detalhado em .PDF (Para Avaliação Diagnóstica)
+        </button>
+        <button class="btn btn-app" onclick="copyTextSummary()">
+          📋 Copiar Resumo para Prontuário
+        </button>
+        <button class="btn btn-toggle" onclick="window.print()">
+          🖨️ Imprimir / PDF via Navegador
+        </button>
+      </div>
+      <label>Texto para Prontuário Eletrônico:</label>
+      <textarea id="outProntuarioText" readonly style="width: 100%; min-height: 140px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: monospace; font-size: 0.8rem; background: #f8fafc;"></textarea>
+    </div>
+
+
+    <!-- Pré-visualização idêntica ao PDF na tela -->
+    <div class="report-preview" id="liveReportPreview"></div>
+  </section>
+</main>
+
+
+<script>
+const MCHAT_ITEMS = [
+  { id: 1, reverse: false, domain: "Atenção Compartilhada (Olhar para onde aponta)",
+    q: "1. Se você apontar para algum objeto no quarto/cômodo, a criança olha para ele?",
+    ex: "Por exemplo, se você apontar para um brinquedo ou animal, a criança olha para o brinquedo ou animal?",
+    moreEx1: [
+      "Você aponta para um brinquedo na prateleira ou no chão e a criança vira o olhar para o brinquedo (e não apenas para o seu dedo).",
+      "Você aponta para um cachorro, gato ou passarinho e a criança direciona o olhar para o animal.",
+      "Você aponta para um objeto distante no consultório dizendo 'Olha lá!' e a criança acompanha com os olhos."
+    ],
+    flowAsk: "Quando você aponta para algo no cômodo, o que a criança faz habitualmente?",
+    moreEx2: [
+      "Exemplos que PASSAM no fluxograma: (1) Olha para o objeto apontado; (2) Aponta também para o objeto; (3) Olha e comenta/vocaliza sobre o objeto.",
+      "Exemplos que FALHAM se forem a reação mais frequente: (1) Ignora o adulto; (2) Olha ao redor do quarto de forma aleatória; (3) Olha apenas para o dedo/mão do adulto."
+    ],
+    passCrit: "Olha para o objeto, aponta para o objeto ou olha e comenta sobre o objeto na maioria das vezes.",
+    failCrit: "Ignora o adulto, olha apenas para a mão/dedo do adulto ou não direciona o olhar para o objeto." },
+  { id: 2, reverse: true, domain: "Percepção Auditiva",
+    q: "2. Alguma vez você já se perguntou se a criança poderia ser surda / ter perda auditiva?",
+    ex: "Por exemplo, já teve dúvida se ela escuta bem quando falam com ela?",
+    moreEx1: [
+      "Parece não notar quando alguém entra no cômodo e fala com ela.",
+      "Não vira a cabeça quando é chamada ou quando há vozes próximas.",
+      "Atende a alguns barulhos (como TV ou brinquedo musical), mas parece 'desligada' para a voz das pessoas."
+    ],
+    flowAsk: "O que levou você a se perguntar se a criança tem dificuldade auditiva?",
+    moreEx2: [
+      "Investigue se no dia a dia a criança costuma: (1) Ignorar sons; (2) Ignorar pessoas; (3) Parecer não ouvir quando falam com ela.",
+      "Observação oficial: Mesmo que o teste auditivo (BERA/audiometria) seja normal, se a criança ignora sons ou pessoas com frequência, pontua FALHA neste item."
+    ],
+    passCrit: "Conclui que a audição é normal e que a criança raramente ignora sons ou pessoas no dia a dia.",
+    failCrit: "Frequentemente ignora sons, parece não ouvir quando falam com ela ou ignora pessoas (solicitar também avaliação audiológica)." },
+  { id: 3, reverse: false, domain: "Brincadeira Simbólica (Faz de Conta)",
+    q: "3. A criança brinca de faz de conta?",
+    ex: "Por exemplo, finge que bebe em um copo vazio, finge falar ao telefone ou finge dar comida para uma boneca ou bichinho de pelúcia?",
+    moreEx1: [
+      "Finge beber água ou suco em um copinho ou xícara vazia.",
+      "Encosta o telefone (ou um bloco/controle remoto) na orelha fingindo conversar.",
+      "Dá comidinha, mamadeira ou coloca uma boneca/bichinho de pelúcia para dormir.",
+      "Mexe uma panelinha vazia com colher fingindo fazer comida ou empurra carrinho fazendo som de motor."
+    ],
+    flowAsk: "A criança costuma fingir beber em copo vazio, falar ao telefone, alimentar boneca/bichinho ou cozinhar de mentirinha?",
+    moreEx2: [
+      "Lista oficial de exemplos do M-CHAT-R/F: (1) Fingir beber em copo vazio; (2) Fingir comer com garfo/colher vazia; (3) Fingir falar ao telefone; (4) Fingir dar comida a boneca ou bichinho; (5) Empurrar carrinho como se andasse numa estrada imaginária; (6) Fingir ser um robô, avião ou bailarina; (7) Colocar panela no fogão de brinquedo ou mexer comida imaginária."
+    ],
+    passCrit: "Realiza habitualmente pelo menos um exemplo de brincadeira de faz de conta.",
+    failCrit: "Não realiza brincadeiras de faz de conta de forma habitual." },
+  { id: 4, reverse: false, domain: "Exploração Motora (Subir)",
+    q: "4. A criança gosta de subir nas coisas?",
+    ex: "Por exemplo, móveis, brinquedos de parquinho ou escadas.",
+    moreEx1: [
+      "Gosta de subir no sofá, poltronas, camas ou cadeiras de casa.",
+      "Gosta de subir degraus de escada (andando ou engatinhando).",
+      "Gosta de subir em escorregador, escadinhas ou estruturas do parquinho."
+    ],
+    flowAsk: "A criança gosta de subir em cadeiras, sofá, escadas ou brinquedos de parquinho?",
+    moreEx2: [
+      "Itens do roteiro de seguimento: (1) Gosta de subir em cadeiras? (2) Gosta de subir em outros móveis? (3) Gosta de subir escadas? (4) Gosta de subir em brinquedos de parquinho?",
+      "Se responder SIM para qualquer um desses exemplos de forma habitual, a criança PASSA no item."
+    ],
+    passCrit: "Sim, gosta de subir em pelo menos um desses exemplos.",
+    failCrit: "Não demonstra interesse ou tentativa de subir em objetos/estruturas." },
+  { id: 5, reverse: true, domain: "Movimentos com os Dedos Próximos aos Olhos",
+    q: "5. A criança faz movimentos incomuns com os dedos perto dos olhos?",
+    ex: "Por exemplo, ela abana ou mexe os dedos perto dos próprios olhos?",
+    moreEx1: [
+      "Abana, sacode ou entrelaça os dedos bem em frente aos próprios olhos.",
+      "Mantém as mãos levantadas muito perto dos olhos enquanto olha de lado para os dedos.",
+      "Olha fixamente através dos dedos abertos movimentando-os contra a luz."
+    ],
+    flowAsk: "Descreva os movimentos: ela mexe os dedos ou mantém as mãos bem perto dos olhos (excluindo esconde-esconde ou coçar os olhos)? Com que frequência?",
+    moreEx2: [
+      "Exemplos que PASSAM (comportamentos comuns/normais): Olhar as próprias mãos ocasionalmente, brincar de 'achou!' (esconde-esconde tapando o rosto) ou coçar os olhos com sono.",
+      "Exemplos que FALHAM (alerta): Mexer os dedos perto dos olhos ou manter as mãos bem perto dos olhos olhando para elas mais de 2 vezes por semana."
+    ],
+    passCrit: "Nunca faz isso, ou faz apenas em brincadeiras normais, ou ocorre menos de 2 vezes por semana.",
+    failCrit: "Mexe os dedos ou olha as mãos perto dos olhos mais de 2 vezes por semana." },
+  { id: 6, reverse: false, domain: "Apontar Protoimperativo (Pedir)",
+    q: "6. A criança aponta com o dedo para pedir algo ou para conseguir ajuda?",
+    ex: "Por exemplo, apontar para um biscoito ou brinquedo fora do alcance dela.",
+    moreEx1: [
+      "Aponta com o dedo indicador para pedir água, mamadeira ou biscoito que está sobre a mesa/armário.",
+      "Aponta para um brinquedo guardado no alto para que o adulto pegue para ela.",
+      "Aponta para uma porta fechada ou pote que não consegue abrir sozinha para pedir ajuda."
+    ],
+    flowAsk: "Quando a criança quer algo fora do alcance, como ela faz? Se você disser 'Mostre com o dedo o que você quer', ela aponta?",
+    moreEx2: [
+      "Investigue como a criança solicita objetos fora do alcance: (1) Estica a mão inteira tentando alcançar? (2) Puxa a mão do adulto até o objeto? (3) Tenta subir para pegar sozinha? (4) Pede usando palavras ou sons?",
+      "Em seguida, pergunte: 'Se você disser: Mostre com o dedo para mim o que você quer, ela aponta com o dedo para o objeto?'"
+    ],
+    passCrit: "Aponta com o dedo para pedir ou mostrar o que deseja.",
+    failCrit: "Apenas chora, puxa a mão do adulto até o objeto ou tenta pegar sem apontar." },
+  { id: 7, reverse: false, domain: "Apontar Protodeclarativo (Mostrar Interesse)",
+    q: "7. A criança aponta com o dedo apenas para mostrar algo interessante para você?",
+    ex: "Por exemplo, apontar para um avião no céu ou um caminhão grande na rua.",
+    moreEx1: [
+      "Aponta para um avião ou pássaro no céu e olha para você para compartilhar o que viu.",
+      "Aponta para um cachorro, gato ou ônibus na rua apenas para mostrar a você.",
+      "Aponta para uma figura chamativa no livro ou luzes de decoração apenas pelo prazer de mostrar."
+    ],
+    flowAsk: "A criança aponta para coisas interessantes (avião, cachorro, caminhão) e olha para você apenas para compartilhar o interesse — e não para pedir ajuda?",
+    moreEx2: [
+      "Exemplos investigados no seguimento: (1) Um avião no céu; (2) Um caminhão na rua; (3) Um inseto no chão; (4) Um animal no quintal/parque.",
+      "Pergunta fundamental de diferenciação: 'Como você sabe que ela está apontando apenas para mostrar e não porque quer que você pegue o objeto?' (Passa somente se houver intenção de compartilhar atenção)."
+    ],
+    passCrit: "Aponta com o objetivo de compartilhar interesse social com o adulto.",
+    failCrit: "Só aponta quando quer pedir o objeto/ajuda, ou não aponta." },
+  { id: 8, reverse: false, domain: "Interesse Social por Pares",
+    q: "8. A criança se interessa por outras crianças?",
+    ex: "Por exemplo, ela observa outras crianças, sorri para elas ou vai até elas?",
+    moreEx1: [
+      "No parquinho, pracinha ou festa, olha com interesse para outras crianças brincando.",
+      "Sorri, aproxima-se ou tenta entregar brinquedos para outras crianças.",
+      "Tenta correr atrás, imitar ou ficar perto de crianças da mesma faixa etária."
+    ],
+    flowAsk: "Quando está perto de outras crianças (que não sejam irmãos), como ela reage? Interage ou observa em mais da metade das vezes?",
+    moreEx2: [
+      "Comportamentos avaliados (com crianças que não são irmãos): (1) Brinca com outra criança; (2) Fala ou balbucia para outra criança; (3) Sorri ou ri para outra criança; (4) Observa atentamente outra criança; (5) Faz graça para chamar a atenção de outra criança.",
+      "Critério de frequência: PASSA se demonstrar interesse em mais da metade das vezes em que está perto de outras crianças."
+    ],
+    passCrit: "Demonstra interesse (olha, sorri, aproxima-se ou brinca) em mais da metade das vezes.",
+    failCrit: "Ignora outras crianças ou afasta-se na maioria das vezes." },
+  { id: 9, reverse: false, domain: "Compartilhamento de Objetos",
+    q: "9. A criança mostra coisas trazendo-as ou segurando-as para você ver — não para conseguir ajuda, mas apenas para compartilhar?",
+    ex: "Por exemplo, mostrar uma flor, um bichinho de pelúcia ou um caminhão de brinquedo.",
+    moreEx1: [
+      "Traz um carrinho, boneca ou peça de montar até você apenas para mostrar e depois volta a brincar.",
+      "Ergue um livro, desenho ou rabisco para que você olhe e elogie.",
+      "Mostra uma flor, folha ou pedrinha que encontrou no quintal apenas para compartilhar."
+    ],
+    flowAsk: "A criança traz brinquedos, flores ou objetos apenas para mostrar a você (e não para que você conserte ou abra algo)?",
+    moreEx2: [
+      "Exemplos do seguimento: (1) Um brinquedo ou figura apenas para mostrar; (2) Um desenho que ela fez; (3) Uma flor que colheu; (4) Um inseto ou folha que achou na grama; (5) Alguns blocos que encaixou.",
+      "Confirme se às vezes ela faz isso apenas para compartilhar, e não somente para pedir que você abra, ligue ou conserte o objeto."
+    ],
+    passCrit: "Traz ou ergue objetos apenas com intenção de compartilhar atenção com o adulto.",
+    failCrit: "Só entrega objetos quando precisa de ajuda instrumental ou não mostra objetos." },
+  { id: 10, reverse: false, domain: "Resposta ao Chamado pelo Nome",
+    q: "10. A criança responde quando você a chama pelo nome?",
+    ex: "Por exemplo, ela olha para cima, fala ou balbucia, ou para o que está fazendo quando você a chama?",
+    moreEx1: [
+      "Olha imediatamente para o seu rosto quando você a chama pelo nome.",
+      "Emite um som, sorri ou responde quando ouve seu nome.",
+      "Pausa o que está fazendo e vira a cabeça procurando quem a chamou."
+    ],
+    flowAsk: "Quando não está distraída com algo muito absorvente e você a chama pelo nome, o que ela faz primeiro na maioria das vezes?",
+    moreEx2: [
+      "Respostas que PASSAM: (1) Olha para o seu rosto; (2) Fala ou balbucia em resposta; (3) Para o que está fazendo para atender.",
+      "Respostas que FALHAM se forem as mais frequentes: (1) Não responde; (2) Parece ouvir, mas ignora o adulto; (3) Só responde se o adulto ficar bem na frente do rosto dela ou tocá-la."
+    ],
+    passCrit: "Olha, responde com som/fala ou interrompe a atividade na maioria das vezes.",
+    failCrit: "Na maioria das vezes ignora, parece não ouvir ou precisa ser chamada repetidas vezes." },
+  { id: 11, reverse: false, domain: "Sorriso Social Recíproco",
+    q: "11. Quando você sorri para a criança, ela sorri de volta para você?",
+    ex: "Avalia reciprocidade do sorriso social.",
+    moreEx1: [
+      "Sorri de volta quando você olha nos olhos dela e abre um sorriso (sem precisar fazer cócegas).",
+      "Sorri ao ver você entrar no quarto pela manhã ou chegar em casa.",
+      "Retribui o sorriso durante momentos de conversa ou troca de olhares."
+    ],
+    flowAsk: "O que faz a criança sorrir? Ela sorri de volta quando você sorri para ela ou chega no ambiente?",
+    moreEx2: [
+      "Exemplos que PASSAM (sorriso social): (1) Sorri quando você sorri; (2) Sorri quando você entra no cômodo; (3) Sorri quando você retorna após ter saído.",
+      "Exemplos que FALHAM (não sociais): (1) Está sempre sorrindo sozinha sem olhar para ninguém; (2) Sorri apenas para um brinquedo ou desenho na TV; (3) Sorri aleatoriamente sem relação com as pessoas."
+    ],
+    passCrit: "Retribui o sorriso social do adulto de forma consistente.",
+    failCrit: "Sorri apenas sozinha, apenas para desenhos/objetos ou não retribui o sorriso do adulto." },
+  { id: 12, reverse: true, domain: "Sensibilidade Auditiva no Cotidiano",
+    q: "12. A criança fica muito incomodada com barulhos do dia a dia?",
+    ex: "Por exemplo, a criança grita ou chora com barulhos como aspirador de pó, liquidificador ou música alta?",
+    moreEx1: [
+      "Chora intensamente, grita ou tapa os ouvidos ao ouvir liquidificador, batedeira ou secador de cabelo.",
+      "Fica desesperada ou tenta fugir ao som de aspirador de pó, máquina de lavar ou furadeira.",
+      "Tapa os ouvidos e chora com música ambiente, choro de outro bebê ou trânsito comum."
+    ],
+    flowAsk: "Quais barulhos incomodam (liquidificador, aspirador, secador, trânsito, música) e como ela reage?",
+    moreEx2: [
+      "Lista oficial de barulhos investigados: (1) Máquina de lavar/secar; (2) Bebês chorando; (3) Aspirador de pó; (4) Secador de cabelo; (5) Trânsito; (6) Portas batendo; (7) Música alta; (8) Telefone/campainha; (9) Locais barulhentos (supermercado/restaurante).",
+      "Se incomoda com 2 ou mais barulhos: PASSA se reage com calma (coloca a mão no ouvido tranquilamente ou diz que não gosta). FALHA se grita, chora ou tapa os ouvidos ficando muito angustiada."
+    ],
+    passCrit: "Incomoda-se com no máximo 1 barulho, ou reage de forma tranquila (sem gritar, chorar ou tapar os ouvidos com desespero).",
+    failCrit: "Reage com grito, choro intenso ou tapando os ouvidos a 2 ou mais barulhos comuns do cotidiano." },
+  { id: 13, reverse: false, domain: "Marcha Independente",
+    q: "13. A criança anda?",
+    ex: "Avalia marcha independente.",
+    moreEx1: [
+      "Caminha sozinha de um cômodo para outro sem segurar nas paredes ou nos móveis.",
+      "Anda no consultório ou no parque sem precisar segurar na mão do adulto.",
+      "Equilibra-se e dá passos de forma autônoma."
+    ],
+    flowAsk: "A criança anda sozinha sem precisar segurar em móveis ou na mão de alguém?",
+    moreEx2: [
+      "Se a criança anda apenas segurando em móveis, andador ou na mão do adulto, pontua FALHA neste item.",
+      "Se já anda sozinha sem apoio na maior parte do tempo, pontua PASSA."
+    ],
+    passCrit: "Anda de forma independente sem apoio.",
+    failCrit: "Ainda não anda ou só anda segurando em apoio." },
+  { id: 14, reverse: false, domain: "Contato Visual",
+    q: "14. A criança olha nos seus olhos quando você está falando com ela, brincando com ela ou vestindo-a?",
+    ex: "Avalia sustentação e frequência de contato ocular.",
+    moreEx1: [
+      "Olha nos seus olhos enquanto você conversa, canta ou conta uma história para ela.",
+      "Faz contato visual durante o banho, troca de fraldas ou ao colocar a roupa.",
+      "Olha para os seus olhos durante brincadeiras compartilhadas ou refeições."
+    ],
+    flowAsk: "A criança olha nos seus olhos todos os dias? Em um dia comum, olha nos seus olhos pelo menos 5 vezes em diferentes momentos?",
+    moreEx2: [
+      "Situações avaliadas no seguimento: (1) Quando precisa de algo; (2) Quando você está brincando com ela; (3) Durante a alimentação; (4) Durante a troca de fraldas/roupa; (5) Quando você lê uma história; (6) Quando você fala com ela.",
+      "Se olhar em apenas 1 situação, só PASSA se olhar todos os dias e pelo menos 5 vezes ao longo do dia."
+    ],
+    passCrit: "Olha nos olhos diariamente, em variados contextos e ao menos 5 vezes por dia.",
+    failCrit: "Não olha nos olhos todos os dias, olha menos de 5 vezes ao dia ou apenas quando precisa de algo." },
+  { id: 15, reverse: false, domain: "Imitação Motora / Vocal",
+    q: "15. A criança tenta imitar o que você faz?",
+    ex: "Por exemplo, dar tchau, bater palmas ou fazer um som engraçado quando você faz.",
+    moreEx1: [
+      "Bate palmas ou acena dando 'tchau' logo após você fazer o gesto.",
+      "Manda beijo, faz careta ou mostra a língua imitando você.",
+      "Repete sons engraçados, batidas na mesa ou coloca o dedo na boca fazendo 'shhh'."
+    ],
+    flowAsk: "Ela tenta imitar bater palmas, dar tchau, mandar beijo, mostrar a língua ou repetir sons engraçados?",
+    moreEx2: [
+      "Os 6 exemplos oficiais do seguimento: (1) Mostrar a língua; (2) Fazer um som engraçado; (3) Dar tchau; (4) Bater palmas; (5) Colocar o dedo nos lábios fazendo 'shhh'; (6) Mandar um beijo no ar.",
+      "Critério: PASSA se imitar habitualmente 2 ou mais desses exemplos; FALHA se imitar apenas 1 ou nenhum."
+    ],
+    passCrit: "Imita habitualmente pelo menos 2 desses gestos/comportamentos.",
+    failCrit: "Imita apenas 1 exemplo ou não imita." },
+  { id: 16, reverse: false, domain: "Seguimento do Olhar do Adulto",
+    q: "16. Se você virar a cabeça para olhar para alguma coisa, a criança olha ao redor para ver o que você está olhando?",
+    ex: "Avalia seguimento de olhar sem apontar.",
+    moreEx1: [
+      "Você vira a cabeça para olhar um objeto do outro lado da sala (sem apontar) e a criança olha na mesma direção.",
+      "A criança percebe que você mudou a direção do olhar e procura ver o que chamou a sua atenção.",
+      "Olha para o seu rosto e em seguida acompanha a linha do seu olhar até o objeto."
+    ],
+    flowAsk: "Se você vira a cabeça para olhar algo no quarto sem apontar e sem falar nada, o que a criança faz?",
+    moreEx2: [
+      "Exemplos que PASSAM: (1) Olha em direção à coisa que você está olhando; (2) Aponta para a coisa que você está olhando; (3) Olha ao redor procurando o que você está olhando.",
+      "Exemplos que FALHAM: (1) Ignora você; (2) Olha apenas para o seu rosto sem procurar o que você olhou."
+    ],
+    passCrit: "Olha na direção em que você está olhando ou procura ver o que chamou sua atenção.",
+    failCrit: "Ignora, não acompanha o olhar ou olha apenas para o seu rosto." },
+  { id: 17, reverse: false, domain: "Busca de Atenção / Aprovação",
+    q: "17. A criança tenta fazer você olhar para ela?",
+    ex: "Por exemplo, a criança olha para você para ser elogiada, ou diz 'olha' ou 'olha para mim'?",
+    moreEx1: [
+      "Empilha blocos, chuta uma bola ou sobe em algo e olha para você esperando aplauso ou elogio.",
+      "Chama 'Olha!', 'Mamãe/Papai!' ou emite sons para que você veja uma graça que ela está fazendo.",
+      "Fica conferindo se você está prestando atenção nela enquanto brinca."
+    ],
+    flowAsk: "A criança faz sons, chama ou olha para você esperando que você veja ou elogie algo que ela fez?",
+    moreEx2: [
+      "Exemplos avaliados no seguimento: (1) Diz 'Olha!' ou 'Olha para mim!'; (2) Balbucia ou faz um ruído para conseguir que você olhe para o que ela está fazendo; (3) Olha para você para receber elogio ou comentário; (4) Continua olhando para verificar se você está prestando atenção nela."
+    ],
+    passCrit: "Sim, busca ativamente a atenção e o olhar de aprovação do adulto.",
+    failCrit: "Não tenta chamar a atenção do adulto para ser observada ou elogiada." },
+  { id: 18, reverse: false, domain: "Compreensão de Comandos Verbais",
+    q: "18. A criança compreende quando você diz para ela fazer alguma coisa?",
+    ex: "Por exemplo, se você não apontar, a criança entende 'ponha o livro na cadeira' ou 'traga o cobertor para mim'?",
+    moreEx1: [
+      "Sem que você aponte ou faça gestos, ela atende a pedidos simples como 'Me dá a bola' ou 'Pega o seu sapato'.",
+      "Entende instruções do dia a dia como 'Joga a fralda no lixo' ou 'Vem comer'.",
+      "Consegue buscar um objeto familiar que você pediu apenas com a voz."
+    ],
+    flowAsk: "Se você pedir algo verbalmente sem apontar e sem fazer gestos (ex.: 'Me dá o brinquedo', 'Pega o sapato'), ela entende e faz?",
+    moreEx2: [
+      "Situações práticas do roteiro oficial (sem apontar nem fazer gestos): (1) Quando você está vestida para sair e diz 'Pegue seus sapatos', ela entende? (2) Na hora do jantar, se você pedir 'Traga [objeto]' de outro lugar, ela traz? (3) Se você disser 'Coloque o livro na cadeira', ela faz?"
+    ],
+    passCrit: "Compreende comandos verbais simples no dia a dia sem precisar de gestos.",
+    failCrit: "Só compreende se o adulto apontar ou gesticular, ou não atende a comandos simples." },
+  { id: 19, reverse: false, domain: "Referenciamento Social",
+    q: "19. Se acontece algo novo, a criança olha para o seu rosto para ver como você se sente a respeito?",
+    ex: "Por exemplo, se ela ouve um barulho estranho ou engraçado, ou vê um brinquedo novo, ela olha para o seu rosto?",
+    moreEx1: [
+      "Ao ouvir um barulho repentino (trovão, buzina, objeto caindo), olha para o seu rosto para checar se está tudo bem.",
+      "Quando um estranho se aproxima ou um brinquedo mecânico se mexe, olha para a sua reação facial antes de agir.",
+      "Busca a sua expressão facial quando encontra algo diferente ou inesperado no caminho."
+    ],
+    flowAsk: "Quando ouve um som desconhecido ou vê algo novo/estranho, a criança olha para o seu rosto para checar sua reação?",
+    moreEx2: [
+      "Perguntas encadeadas do fluxograma oficial: (1) Se a criança ouve um barulho estranho ou assustador, ela olha para você antes de reagir? (2) Se alguém que ela não conhece se aproxima, ela olha para o seu rosto? (3) Se ela vê algo novo ou pouco familiar, olha para você?",
+      "Se responder SIM para qualquer uma dessas 3 situações, a criança PASSA no item."
+    ],
+    passCrit: "Olha para o rosto do adulto em busca de referência emocional.",
+    failCrit: "Não olha para o rosto do adulto diante de situações novas ou inesperadas." },
+  { id: 20, reverse: false, domain: "Atividades de Movimento",
+    q: "20. A criança gosta de atividades de movimento?",
+    ex: "Por exemplo, ser balançada ou pular nos seus joelhos.",
+    moreEx1: [
+      "Sorri, dá gargalhadas e demonstra alegria quando brinca de pular ('cavalinho') nos seus joelhos.",
+      "Gosta de ser balançada nos braços dos pais, na rede ou no balanço do parquinho.",
+      "Pede 'mais' ou estica os braços quando a brincadeira de movimento para."
+    ],
+    flowAsk: "Quando você balança a criança ou brinca de pular nos joelhos, como ela reage?",
+    moreEx2: [
+      "Reações investigadas no seguimento quando é balançada ou pula no colo: (1) Ri ou sorri? (2) Fala ou balbucia demonstrando prazer? (3) Pede 'mais' levantando os braços?",
+      "Se apresentar qualquer uma dessas reações positivas, a criança PASSA no item."
+    ],
+    passCrit: "Demonstra prazer (ri, sorri, pede mais ou estica os braços).",
+    failCrit: "Não gosta, fica indiferente ou incomodada sem motivo aparente." }
+];
+
+
+let ansStage1 = {}; // id -> 'SIM' | 'NAO'
+let ansStage2 = {}; // id -> 'PASSOU' | 'FALHOU'
+let openExStage1 = {}; // id -> boolean (controla abertura do ⓘ na Etapa 1)
+let openExStage2 = {}; // id -> boolean (controla abertura do ⓘ na Etapa 2)
+let showScore = true;
+let isHealthProf = true;
+let informants = { "Mãe": true, "Pai": false, "Responsável": false, "Outros": false };
+
+
+function toggleMoreEx(stage, id) {
+  if (stage === 1) {
+    openExStage1[id] = !openExStage1[id];
+  } else {
+    openExStage2[id] = !openExStage2[id];
+  }
+  refreshUI();
+}
+
+
+function setHealthProfessional(val) {
+  isHealthProf = val;
+  document.getElementById("pillHealthYes").classList.toggle("active", val === true);
+  document.getElementById("pillHealthNo").classList.toggle("active", val === false);
+  document.getElementById("boxHealthDetails").style.display = val ? "grid" : "none";
+  refreshUI();
+}
+
+
+function getApplicatorFormatted() {
+  const name = document.getElementById("inApplicatorName").value.trim() || "Não informado";
+  if (!isHealthProf) return `${name} (Aplicador — Não profissional da saúde)`;
+  const prof = document.getElementById("inProfession").value.trim();
+  const council = document.getElementById("inCouncil").value.trim();
+  const extras = [prof, council].filter(Boolean).join(" — ");
+  return extras ? `${name} (${extras})` : `${name} (Profissional da Saúde)`;
+}
+
+
+function changeAgeMode() {
+  const mode = document.getElementById("selAgeMode").value;
+  document.getElementById("boxAgeMonths").style.display = mode === "months" ? "block" : "none";
+  document.getElementById("boxAgeYM").style.display = mode === "ym" ? "grid" : "none";
+  document.getElementById("boxAgeDOB").style.display = mode === "dob" ? "block" : "none";
+  refreshUI();
+}
+
+
+function calculateAgeInMonths() {
+  const mode = document.getElementById("selAgeMode").value;
+  if (mode === "months") {
+    const m = parseInt(document.getElementById("inAgeMonths").value, 10);
+    return isNaN(m) ? 18 : Math.max(0, m);
+  }
+  if (mode === "ym") {
+    const y = parseInt(document.getElementById("inAgeYears").value || "0", 10);
+    const m = parseInt(document.getElementById("inAgeExtraMonths").value || "0", 10);
+    return Math.max(0, (y * 12) + m);
+  }
+  if (mode === "dob") {
+    const dobStr = document.getElementById("inBirthDate").value;
+    if (!dobStr) return 18;
+    const parts = dobStr.split("-");
+    const birth = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    const now = new Date();
+    let months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+    if (now.getDate() < birth.getDate()) {
+      months -= 1;
+    }
+    return Math.max(0, months);
+  }
+  return 18;
+}
+
+
+function toggleInformant(key) {
+  informants[key] = !informants[key];
+  if (!Object.values(informants).some(Boolean)) {
+    informants[key] = true;
+  }
+  document.getElementById("pillInfMae").classList.toggle("active", informants["Mãe"]);
+  document.getElementById("pillInfPai").classList.toggle("active", informants["Pai"]);
+  document.getElementById("pillInfResp").classList.toggle("active", informants["Responsável"]);
+  document.getElementById("pillInfOutros").classList.toggle("active", informants["Outros"]);
+  document.getElementById("boxInfOutrosText").style.display = informants["Outros"] ? "block" : "none";
+  refreshUI();
+}
+
+
+function getInformantsFormatted() {
+  const list = [];
+  if (informants["Mãe"]) list.push("Mãe");
+  if (informants["Pai"]) list.push("Pai");
+  if (informants["Responsável"]) list.push("Responsável");
+  if (informants["Outros"]) {
+    const custom = document.getElementById("inInfOutros").value.trim();
+    list.push(custom ? `Outros (${custom})` : "Outros");
+  }
+  return list.join(", ");
+}
+
+
+function isItemRiskStage1(item, answer) {
+  if (!answer) return false;
+  return item.reverse ? (answer === "SIM") : (answer === "NAO");
+}
+
+
+function selectStage1(id, val) {
+  ansStage1[id] = val;
+  const item = MCHAT_ITEMS.find(i => i.id === id);
+  if (!isItemRiskStage1(item, val)) {
+    delete ansStage2[id];
+  }
+  refreshUI();
+}
+
+
+function selectStage2(id, val) {
+  ansStage2[id] = val;
+  refreshUI();
+}
+
+
+function toggleScore() {
+  showScore = !showScore;
+  const bar = document.getElementById("scoreBar");
+  const btn = document.getElementById("btnToggleScore");
+  const tab2Count = document.getElementById("spanTab2Count");
+
+
+  if (showScore) {
+    bar.classList.remove("hidden");
+    btn.classList.add("active");
+    btn.innerHTML = "👁️ Ocultar Pontuação";
+    tab2Count.style.display = "inline";
+  } else {
+    bar.classList.add("hidden");
+    btn.classList.remove("active");
+    btn.innerHTML = "🙈 Mostrar Pontuação";
+    tab2Count.style.display = "none";
+  }
+  refreshUI();
+}
+
+
+function computeClinicalState() {
+  const ageMonths = calculateAgeInMonths();
+  const childName = document.getElementById("inChildName").value.trim() || "Não informado";
+  const applicator = getApplicatorFormatted();
+  const informantStr = getInformantsFormatted();
+  const dateStr = new Date().toLocaleDateString("pt-BR");
+
+
+  const answered1Count = Object.keys(ansStage1).length;
+  const riskItems1 = MCHAT_ITEMS.filter(it => isItemRiskStage1(it, ansStage1[it.id]));
+  const score1 = riskItems1.length;
+
+
+  const answered2Count = riskItems1.filter(it => Boolean(ansStage2[it.id])).length;
+  const failedItems2 = riskItems1.filter(it => ansStage2[it.id] === "FALHOU");
+  const score2 = failedItems2.length;
+
+
+  let finalTitle = "";
+  let referralMessage = "";
+  let riskLevel = "low";
+
+
+  if (score1 >= 8) {
+    riskLevel = "high";
+    finalTitle = `ALTO RISCO NA 1ª ETAPA (${score1}/20 pontos — 8 ou mais pontos)`;
+    referralMessage = `Como a pontuação atingiu 8 pontos ou mais (${score1} pontos), indica-se à Mãe, Pai ou Responsável (${informantStr}) encaminhar a criança imediatamente para AVALIAÇÃO DIAGNÓSTICA especializada e também para AVALIAÇÃO DA NECESSIDADE DE INTERVENÇÃO precoce multiprofissional.`;
+  } else if (score1 >= 2 && score1 < 8) {
+    if (answered2Count < score1) {
+      riskLevel = "med";
+      finalTitle = `INDICAÇÃO DE 2ª ETAPA: SEGUIMENTO M-CHAT-R/F (${score1}/20 pontos na 1ª Etapa)`;
+      referralMessage = `A criança fez entre 2 e 7 pontos (${score1} pontos). Deve-se aplicar a 2ª Etapa (Seguimento M-CHAT-R/F) nos ${score1} itens pontuados para definir o resultado final.`;
+    } else if (score2 >= 2) {
+      riskLevel = "high";
+      finalTitle = `TRIAGEM POSITIVA APÓS 2ª ETAPA (M-CHAT-R: ${score1}/20 | Seguimento M-CHAT-R/F: ${score2} falhas)`;
+      referralMessage = `Após a aplicação do Seguimento M-CHAT-R/F, a criança pontuou 2 ou mais falhas (${score2} falhas). Indica-se à Mãe, Pai ou Responsável (${informantStr}) encaminhar a criança para AVALIAÇÃO DIAGNÓSTICA especializada e também para AVALIAÇÃO DA NECESSIDADE DE INTERVENÇÃO precoce.`;
+    } else {
+      riskLevel = "low";
+      finalTitle = `TRIAGEM NEGATIVA APÓS 2ª ETAPA (M-CHAT-R: ${score1}/20 | Seguimento M-CHAT-R/F: ${score2} falha)`;
+      referralMessage = `Após o Seguimento M-CHAT-R/F, a pontuação final foi menor que 2 pontos (${score2} ponto). Não há indicação de encaminhamento imediato no momento; manter vigilância do desenvolvimento nas consultas subsequentes${ageMonths < 24 ? ' e repetir a triagem após os 24 meses' : ''}.`;
+    }
+  } else {
+    riskLevel = "low";
+    finalTitle = `BAIXO RISCO (${score1}/20 pontos — Menos de 2 pontos)`;
+    referralMessage = ageMonths < 24
+      ? `Pontuação inferior a 2 pontos (${score1}/20). Como a criança tem menos de 24 meses (${ageMonths} meses), deve-se repetir a triagem após o aniversário de 2 anos (24 meses) e manter vigilância do desenvolvimento.`
+      : `Pontuação inferior a 2 pontos (${score1}/20). Não é necessário aplicar seguimento no momento; manter vigilância habitual do desenvolvimento.`;
+  }
+
+
+  return {
+    ageMonths,
+    childName,
+    applicator,
+    informantStr,
+    dateStr,
+    answered1Count,
+    riskItems1,
+    score1,
+    answered2Count,
+    failedItems2,
+    score2,
+    finalTitle,
+    referralMessage,
+    riskLevel
+  };
+}
+
+
+function refreshUI() {
+  const st = computeClinicalState();
+  const yearsPart = Math.floor(st.ageMonths / 12);
+  const remMonths = st.ageMonths % 12;
+  document.getElementById("outCalculatedAge").value =
+    `${st.ageMonths} meses (${yearsPart} ano${yearsPart !== 1 ? 's' : ''} e ${remMonths} ${remMonths !== 1 ? 'meses' : 'mês'})`;
+
+
+  document.getElementById("lblProgress").textContent = `Respondidas: ${st.answered1Count}/20`;
+  document.getElementById("lblScore1").textContent = st.score1;
+  document.getElementById("spanTab2Count").textContent = `(${st.score1})`;
+
+
+  const wrapScore2 = document.getElementById("wrapScore2");
+  if ((st.score1 >= 2 && st.score1 < 8) || st.answered2Count > 0) {
+    wrapScore2.style.display = "inline";
+    document.getElementById("lblScore2").textContent = `${st.score2} (${st.answered2Count}/${st.score1})`;
+  } else {
+    wrapScore2.style.display = "none";
+  }
+
+
+  const badge = document.getElementById("lblRiskBadge");
+  if (st.riskLevel === "high") {
+    badge.className = "badge badge-high";
+    badge.textContent = `Encaminhar para Avaliação e Intervenção`;
+  } else if (st.riskLevel === "med") {
+    badge.className = "badge badge-med";
+    badge.textContent = `Aplicar 2ª Etapa M-CHAT-R/F (${st.score1} pts)`;
+  } else {
+    badge.className = "badge badge-low";
+    badge.textContent = `Baixo Risco (${st.score1} pt${st.score1 === 1 ? '' : 's'})`;
+  }
+
+
+  renderStage1List(st);
+  renderStage2List(st);
+  renderStage3Report(st);
+}
+
+
+function renderStage1List(st) {
+  const container = document.getElementById("listStage1");
+  container.innerHTML = "";
+
+
+  MCHAT_ITEMS.forEach(item => {
+    const ans = ansStage1[item.id];
+    const risk = isItemRiskStage1(item, ans);
+    const isExpanded = Boolean(openExStage1[item.id]);
+    const card = document.createElement("div");
+
+
+    card.className = "q-card" + (showScore && risk ? " risk-visible" : "");
+
+
+    const domainText = showScore
+      ? `${item.domain} • ${item.reverse ? 'Item Reverso (Risco = SIM)' : '(Risco = NÃO)'}`
+      : item.domain;
+
+
+    const moreExamplesHtml = isExpanded
+      ? `
+        <div class="more-examples-panel">
+          <strong>Mais exemplos práticos para a Questão ${item.id}:</strong>
+          <ul>
+            ${item.moreEx1.map(t => `<li>${t}</li>`).join("")}
+          </ul>
+        </div>
+      `
+      : "";
+
+
+    card.innerHTML = `
+      <div class="q-head">
+        <span class="q-num">Questão ${item.id}</span>
+        <span class="q-domain">${domainText}</span>
+      </div>
+      <div class="q-title">${item.q}</div>
+      <div class="q-example-row">
+        <span>${item.ex}</span>
+        <button type="button" class="info-circle-btn ${isExpanded ? 'active' : ''}" onclick="toggleMoreEx(1, ${item.id})" title="Ver mais exemplos">
+          &#x24D8; ${isExpanded ? 'Ocultar exemplos' : 'Mais exemplos'}
+        </button>
+      </div>
+      ${moreExamplesHtml}
+      <div class="opt-row">
+        <button class="opt-btn ${ans === 'SIM' ? 'sel-blue' : ''}" onclick="selectStage1(${item.id}, 'SIM')">SIM</button>
+        <button class="opt-btn ${ans === 'NAO' ? 'sel-slate' : ''}" onclick="selectStage1(${item.id}, 'NAO')">NÃO</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+
+  const footer = document.getElementById("footerStage1");
+  if (st.answered1Count === 0) {
+    footer.className = "stage-footer";
+    footer.innerHTML = `<strong>Final da 1ª Etapa:</strong> Selecione as respostas das 20 questões acima para liberar o encaminhamento para a 2ª Etapa (M-CHAT-R/F) ou o Relatório Final em PDF.`;
+    return;
+  }
+
+
+  if (!showScore) {
+    footer.className = "stage-footer";
+    if (st.score1 >= 2 && st.score1 < 8) {
+      footer.innerHTML = `
+        <h3 style="margin: 0 0 8px; color: var(--primary-dark);">➡️ Ir para a 2ª Etapa: Seguimento M-CHAT-R/F</h3>
+        <p style="margin: 0 0 12px; font-size: 0.92rem; line-height: 1.5;">
+          Há questões selecionadas para detalhamento complementar no fluxograma da 2ª Etapa.
+        </p>
+        <button class="btn btn-primary" onclick="openTab(2)">Ir para a 2ª Etapa: Seguimento M-CHAT-R/F →</button>
+      `;
+    } else {
+      footer.innerHTML = `
+        <h3 style="margin: 0 0 8px; color: var(--primary-dark);">✓ 1ª Etapa Concluída (${st.answered1Count}/20 questões)</h3>
+        <p style="margin: 0 0 12px; font-size: 0.92rem; line-height: 1.5;">
+          Avance para a aba final para visualizar a conduta detalhada e salvar o relatório em <strong>.PDF</strong>.
+        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <button class="btn btn-pdf" onclick="openTab(3); generateVectorPDF();">📄 Salvar Relatório Detalhado em .PDF</button>
+          <button class="btn btn-primary" onclick="openTab(3)">Ver Resultado Final →</button>
+        </div>
+      `;
+    }
+    return;
+  }
+
+
+  if (st.score1 >= 8) {
+    footer.className = "stage-footer high-visible";
+    footer.innerHTML = `
+      <h3 style="margin: 0 0 8px; color: var(--high);">⚠️ Pontuação ≥ 8 (${st.score1} pontos): Encaminhamento Direto</h3>
+      <p style="margin: 0 0 12px; font-size: 0.92rem; line-height: 1.5;">
+        <strong>Indicação à Mãe, Pai ou Responsável (${st.informantStr}):</strong><br/>
+        A criança obteve <strong>${st.score1} pontos</strong> (8 pontos ou mais). Indica-se à Mãe, Pai ou Responsável encaminhar a criança imediatamente para <strong>avaliação diagnóstica</strong> e também para <strong>avaliação da necessidade de intervenção</strong>.
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <button class="btn btn-pdf" onclick="openTab(3); generateVectorPDF();">📄 Salvar Resultado Detalhado em .PDF</button>
+        <button class="btn btn-primary" onclick="openTab(3)">Ver Relatório Completo →</button>
+      </div>
+    `;
+  } else if (st.score1 >= 2 && st.score1 < 8) {
+    footer.className = "stage-footer med-visible";
+    footer.innerHTML = `
+      <h3 style="margin: 0 0 8px; color: #b45309;">➡️ 2 a 7 Pontos (${st.score1} pontos): Ir para a 2ª Etapa (Seguimento M-CHAT-R/F)</h3>
+      <p style="margin: 0 0 12px; font-size: 0.92rem; line-height: 1.5;">
+        A criança fez <strong>${st.score1} pontos</strong> (2 ou mais pontos, mas menos que 8). Clique abaixo para abrir o questionário e o fluxograma de seguimento M-CHAT-R/F para resultado final.
+      </p>
+      <button class="btn btn-primary" onclick="openTab(2)">Ir para a 2ª Etapa: Seguimento M-CHAT-R/F →</button>
+    `;
+  } else {
+    footer.className = "stage-footer low-visible";
+    footer.innerHTML = `
+      <h3 style="margin: 0 0 8px; color: var(--low);">✓ Baixo Risco (${st.score1} ponto${st.score1 === 1 ? '' : 's'})</h3>
+      <p style="margin: 0 0 12px; font-size: 0.92rem; line-height: 1.5;">
+        ${st.referralMessage}
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <button class="btn btn-pdf" onclick="openTab(3); generateVectorPDF();">📄 Salvar Resultado Detalhado em .PDF</button>
+        <button class="btn btn-primary" onclick="openTab(3)">Ver Relatório Final →</button>
+      </div>
+    `;
+  }
+}
+
+
+function renderStage2List(st) {
+  const flowOverview = document.getElementById("flowOverviewStage2");
+  const banner = document.getElementById("bannerStage2");
+  const list = document.getElementById("listStage2");
+  const footer2 = document.getElementById("footerStage2");
+  list.innerHTML = "";
+
+
+  // Fluxograma da 2ª Etapa agora empilhado um em cima do outro na horizontal (.stack-vertical)
+  if (showScore) {
+    flowOverview.innerHTML = `
+      <div class="section-title">Fluxograma para Resultado Final — 2ª Etapa (Seguimento M-CHAT-R/F)</div>
+      <div class="stack-vertical">
+        <div class="flow-step">
+          <strong>1. Critério de Entrada (2 a 7 pts):</strong> Aplicar as perguntas do fluxograma apenas nos itens em que a criança pontuou risco na 1ª Etapa.
+        </div>
+        <div class="flow-step pass-visible">
+          <strong>2A. Menos de 2 falhas (0 ou 1 pt):</strong> Triagem Negativa após seguimento. Manter acompanhamento do desenvolvimento.
+        </div>
+        <div class="flow-step fail-visible">
+          <strong>2B. 2 ou mais falhas (≥ 2 pts):</strong> Triagem Positiva. Indicar à Mãe, Pai ou Responsável encaminhamento para <strong>avaliação diagnóstica</strong> e <strong>intervenção</strong>.
+        </div>
+      </div>
+    `;
+  } else {
+    flowOverview.innerHTML = `
+      <div class="section-title">Roteiro Estruturado da 2ª Etapa (M-CHAT-R/F)</div>
+      <div class="stack-vertical">
+        <div class="flow-step neutral-step">
+          <strong>1. Pergunta de Esclarecimento:</strong> Solicite ao informante exemplos práticos do comportamento habitual da criança em cada item abaixo.
+        </div>
+        <div class="flow-step neutral-step">
+          <strong>2. Seleção de Padrão:</strong> Marque o padrão (A ou B) que corresponde aos exemplos descritos durante a consulta.
+        </div>
+      </div>
+    `;
+  }
+
+
+  if (st.score1 === 0) {
+    banner.innerHTML = `<strong>Nenhum item pontuou na 1ª Etapa.</strong> Responda a 1ª etapa para habilitar o questionário de seguimento.`;
+    footer2.style.display = "none";
+    return;
+  }
+
+
+  footer2.style.display = "block";
+  banner.innerHTML = showScore
+    ? `<span class="badge badge-med">Itens para Seguimento M-CHAT-R/F: ${st.score1}</span> Avalie cada item abaixo conforme o fluxograma.`
+    : `<span class="badge badge-neutral">Entrevista Complementar M-CHAT-R/F</span> Avalie os itens listados abaixo com o informante (${st.informantStr}).`;
+
+
+  st.riskItems1.forEach(item => {
+    const a2 = ansStage2[item.id];
+    const isExpanded2 = Boolean(openExStage2[item.id]);
+    const card = document.createElement("div");
+    card.className = "q-card";
+
+
+    const passStepClass = showScore ? "flow-step pass-visible" : "flow-step neutral-step";
+    const failStepClass = showScore ? "flow-step fail-visible" : "flow-step neutral-step";
+
+
+    const passHeading = showScore ? "Critério PASSOU (0 ponto):" : "Padrão A (Comportamento presente / consistente):";
+    const failHeading = showScore ? "Critério FALHOU (1 ponto):" : "Padrão B (Comportamento ausente / restrito):";
+
+
+    const btnPassClass = a2 === "PASSOU" ? (showScore ? "opt-btn sel-pass" : "opt-btn sel-blue") : "opt-btn";
+    const btnFailClass = a2 === "FALHOU" ? (showScore ? "opt-btn sel-fail" : "opt-btn sel-slate") : "opt-btn";
+
+
+    const btnPassText = showScore ? "✓ PASSOU no Fluxograma (0 pt)" : "Selecionar Padrão A";
+    const btnFailText = showScore ? "✗ FALHOU no Fluxograma (1 pt)" : "Selecionar Padrão B";
+
+
+    const moreExamples2Html = isExpanded2
+      ? `
+        <div class="more-examples-panel">
+          <strong>Exemplos detalhados do Fluxograma (Questão ${item.id}):</strong>
+          <ul>
+            ${item.moreEx2.map(t => `<li>${t}</li>`).join("")}
+          </ul>
+        </div>
+      `
+      : "";
+
+
+    card.innerHTML = `
+      <div class="q-head">
+        <span class="q-num">Questão ${item.id}</span>
+        <span class="q-domain">Seguimento • 1ª Etapa: ${ansStage1[item.id]}</span>
+      </div>
+      <div class="q-title">${item.q}</div>
+      <div class="flow-box">
+        <div class="flow-header">Fluxograma da Questão ${item.id}</div>
+        <div class="stack-vertical">
+          <div class="flow-step">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+              <strong>Pergunta ao Informante (${st.informantStr}):</strong>
+              <button type="button" class="info-circle-btn ${isExpanded2 ? 'active' : ''}" onclick="toggleMoreEx(2, ${item.id})" title="Ver mais exemplos do seguimento">
+                &#x24D8; ${isExpanded2 ? 'Ocultar exemplos' : 'Mais exemplos'}
+              </button>
+            </div>
+            <div style="margin-top: 4px;">${item.flowAsk}</div>
+            ${moreExamples2Html}
+          </div>
+          <div class="${passStepClass}">
+            <strong>${passHeading}</strong><br/>${item.passCrit}
+          </div>
+          <div class="${failStepClass}">
+            <strong>${failHeading}</strong><br/>${item.failCrit}
+          </div>
+        </div>
+      </div>
+      <div class="opt-row">
+        <button class="${btnPassClass}" onclick="selectStage2(${item.id}, 'PASSOU')">${btnPassText}</button>
+        <button class="${btnFailClass}" onclick="selectStage2(${item.id}, 'FALHOU')">${btnFailText}</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+
+  if (!showScore) {
+    footer2.className = "stage-footer";
+    footer2.innerHTML = `
+      <h3 style="margin: 0 0 8px; color: var(--primary-dark);">Itens Avaliados na 2ª Etapa: ${st.answered2Count}/${st.score1}</h3>
+      <p style="margin: 0 0 12px; font-size: 0.92rem;">Avance para a aba de Relatório Final para ver o resultado e baixar o PDF.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <button class="btn btn-pdf" onclick="openTab(3); generateVectorPDF();">📄 Baixar Relatório Detalhado em .PDF</button>
+        <button class="btn btn-primary" onclick="openTab(3)">Ver Relatório Final →</button>
+      </div>
+    `;
+  } else if (st.score2 >= 2) {
+    footer2.className = "stage-footer high-visible";
+    footer2.innerHTML = `
+      <h3 style="margin: 0 0 8px; color: var(--high);">⚠️ Resultado Final M-CHAT-R/F: Triagem Positiva (${st.score2} falhas)</h3>
+      <p style="margin: 0 0 12px; font-size: 0.92rem; line-height: 1.5;">
+        ${st.referralMessage}
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <button class="btn btn-pdf" onclick="openTab(3); generateVectorPDF();">📄 Baixar Relatório Detalhado em .PDF</button>
+        <button class="btn btn-primary" onclick="openTab(3)">Ver Relatório Completo →</button>
+      </div>
+    `;
+  } else {
+    footer2.className = "stage-footer low-visible";
+    footer2.innerHTML = `
+      <h3 style="margin: 0 0 8px; color: var(--low);">Resultado Parcial/Final da 2ª Etapa: ${st.score2} falha(s) (${st.answered2Count}/${st.score1} avaliados)</h3>
+      <p style="margin: 0 0 12px; font-size: 0.92rem; line-height: 1.5;">
+        ${st.referralMessage}
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <button class="btn btn-pdf" onclick="openTab(3); generateVectorPDF();">📄 Baixar Relatório Detalhado em .PDF</button>
+        <button class="btn btn-primary" onclick="openTab(3)">Ver Relatório Completo →</button>
+      </div>
+    `;
+  }
+}
+
+
+function renderStage3Report(st) {
+  const failedList1 = st.riskItems1.map(i => `Item ${i.id}`).join(", ") || "Nenhum";
+  const failedList2 = st.failedItems2.map(i => `Item ${i.id}`).join(", ") || "Nenhum";
+
+
+  const txt = [
+    `=== RELATÓRIO DE TRIAGEM M-CHAT-R / M-CHAT-R/F ===`,
+    `Data: ${st.dateStr}`,
+    `Aplicador: ${st.applicator}`,
+    `Criança: ${st.childName} | Idade: ${st.ageMonths} meses`,
+    `Informante(s): ${st.informantStr}`,
+    ``,
+    `1ª ETAPA (M-CHAT-R): ${st.score1}/20 pontos (${st.answered1Count}/20 respondidas)`,
+    `Itens pontuados na 1ª Etapa: ${failedList1}`,
+    `2ª ETAPA (Seguimento M-CHAT-R/F): ${st.score1 >= 2 && st.score1 < 8 ? `${st.score2} falha(s) confirmada(s) (${failedList2})` : 'Não aplicável'}`,
+    ``,
+    `RESULTADO FINAL: ${st.finalTitle}`,
+    `CONDUTA / ORIENTAÇÃO À FAMÍLIA: ${st.referralMessage}`
+  ].join("\n");
+
+
+  document.getElementById("outProntuarioText").value = txt;
+
+
+  const rowsHtml = MCHAT_ITEMS.map(item => {
+    const a1 = ansStage1[item.id] || "Não respondida";
+    const r1 = isItemRiskStage1(item, ansStage1[item.id]);
+    const pt1 = ansStage1[item.id] ? (r1 ? "1 pt (Risco)" : "0 pt") : "—";
+    const a2 = r1 ? (ansStage2[item.id] || "Não aplicado") : "—";
+    return `
+      <tr>
+        <td style="text-align: center; font-weight: 700;">${item.id}</td>
+        <td>${item.q}</td>
+        <td style="text-align: center; font-weight: 700;">${a1}</td>
+        <td style="text-align: center; font-weight: 700; color: ${r1 ? '#dc2626' : '#16a34a'};">${pt1}</td>
+        <td style="text-align: center; font-weight: 700;">${a2}</td>
+      </tr>
+    `;
+  }).join("");
+
+
+  document.getElementById("liveReportPreview").innerHTML = `
+    <div style="border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.15rem;">Relatório Clínico Detalhado — M-CHAT-R e M-CHAT-R/F</h2>
+        <p style="margin: 4px 0 0; font-size: 0.8rem; color: #475569;">
+          Instrumento de Triagem para Transtorno do Espectro Autista (16 a 30 meses) • Documento para Avaliação Diagnóstica
+        </p>
+      </div>
+      <div style="font-size: 0.82rem; text-align: right;">
+        <strong>Data:</strong> ${st.dateStr}
+      </div>
+    </div>
+
+
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 0.86rem; line-height: 1.6;">
+      <div><strong>Criança:</strong> ${st.childName} &nbsp;|&nbsp; <strong>Idade:</strong> ${st.ageMonths} meses</div>
+      <div><strong>Informante(s):</strong> ${st.informantStr}</div>
+      <div><strong>Aplicador / Profissional:</strong> ${st.applicator}</div>
+    </div>
+
+
+    <div style="border: 2px solid #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 16px; background: #f1f5f9; font-size: 0.88rem; line-height: 1.5;">
+      <div style="font-weight: 800; font-size: 0.96rem; margin-bottom: 6px;">RESULTADO FINAL: ${st.finalTitle}</div>
+      <div>
+        <strong>Pontuação 1ª Etapa (M-CHAT-R):</strong> ${st.score1}/20 pontos
+        ${(st.score1 >= 2 && st.score1 < 8) || st.answered2Count > 0 ? ` &nbsp;|&nbsp; <strong>2ª Etapa (Seguimento M-CHAT-R/F):</strong> ${st.score2} falha(s) confirmada(s)` : ''}
+      </div>
+      <div style="margin-top: 8px;">
+        <strong>Orientação à Mãe, Pai ou Responsável (${st.informantStr}):</strong><br/>
+        ${st.referralMessage}
+      </div>
+    </div>
+
+
+    <h4 style="margin: 12px 0 6px; font-size: 0.9rem;">Tabela Completa de Respostas (1ª Etapa M-CHAT-R e 2ª Etapa M-CHAT-R/F)</h4>
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th style="width: 38px; text-align: center;">#</th>
+          <th>Pergunta Avaliada</th>
+          <th style="width: 90px; text-align: center;">1ª Etapa</th>
+          <th style="width: 90px; text-align: center;">Pontuação</th>
+          <th style="width: 110px; text-align: center;">2ª Etapa (R/F)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+      </tbody>
+    </table>
+
+
+    <div style="margin-top: 28px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 0.8rem;">
+      <div style="color: #64748b; max-width: 58%;">
+        Nota Técnica: O M-CHAT-R/F é um instrumento oficial de triagem clínica para risco de TEA em crianças de 16 a 30 meses. Resultado positivo indica encaminhamento para avaliação diagnóstica e intervenção precoce.
+      </div>
+      <div style="text-align: center; min-width: 220px; border-top: 1px solid #0f172a; padding-top: 6px;">
+        <strong>${st.applicator}</strong><br/>Assinatura / Carimbo
+      </div>
+    </div>
+  `;
+}
+
+
+/* GERADOR DE PDF VETORIAL NATIVO */
+function generateVectorPDF() {
+  const st = computeClinicalState();
+
+
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    openTab(3);
+    window.print();
+    return;
+  }
+
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 12;
+  const contentWidth = pageWidth - (margin * 2);
+  let y = 14;
+
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(15, 23, 42);
+  doc.text("Relatorio Clinico Detalhado — M-CHAT-R e M-CHAT-R/F", margin, y);
+
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Data: ${st.dateStr}`, pageWidth - margin, y, { align: "right" });
+
+
+  y += 5;
+  doc.setFontSize(8.5);
+  doc.text("Instrumento de Triagem para Transtorno do Espectro Autista (16 a 30 meses) - Documento para Avaliacao Diagnostica", margin, y);
+
+
+  y += 3;
+  doc.setDrawColor(15, 23, 42);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageWidth - margin, y);
+
+
+  y += 5;
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, y, contentWidth, 20, 2, 2, "FD");
+
+
+  doc.setFontSize(9.5);
+  doc.setTextColor(15, 23, 42);
+  doc.setFont("helvetica", "bold");
+  doc.text("Crianca:", margin + 3, y + 6);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${st.childName} (${st.ageMonths} meses)`, margin + 19, y + 6);
+
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Informante(s):", margin + 3, y + 12);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${st.informantStr}`, margin + 28, y + 12);
+
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Aplicador / Profissional:", margin + 3, y + 18);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${st.applicator}`, margin + 45, y + 18);
+
+
+  y += 25;
+  const guidanceLines = doc.splitTextToSize(`Orientacao (${st.informantStr}): ${st.referralMessage}`, contentWidth - 6);
+  const boxHeight = 16 + (guidanceLines.length * 4.3);
+
+
+  if (st.riskLevel === "high") {
+    doc.setFillColor(254, 242, 242);
+    doc.setDrawColor(220, 38, 38);
+  } else if (st.riskLevel === "med") {
+    doc.setFillColor(255, 251, 235);
+    doc.setDrawColor(217, 119, 6);
+  } else {
+    doc.setFillColor(240, 253, 244);
+    doc.setDrawColor(22, 163, 74);
+  }
+  doc.setLineWidth(0.5);
+  doc.roundedRect(margin, y, contentWidth, boxHeight, 2, 2, "FD");
+
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`RESULTADO FINAL: ${st.finalTitle}`, margin + 3, y + 6);
+
+
+  doc.setFontSize(9);
+  const stage2Summary = (st.score1 >= 2 && st.score1 < 8) || st.answered2Count > 0
+    ? `  |  Pontuacao 2a Etapa (Seguimento M-CHAT-R/F): ${st.score2} falha(s) confirmada(s)`
+    : "";
+  doc.text(`Pontuacao 1a Etapa (M-CHAT-R): ${st.score1}/20 pontos${stage2Summary}`, margin + 3, y + 11.5);
+
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.8);
+  doc.text(guidanceLines, margin + 3, y + 17);
+
+
+  y += boxHeight + 5;
+
+
+  const tableBody = MCHAT_ITEMS.map(item => {
+    const a1 = ansStage1[item.id] || "Nao resp.";
+    const r1 = isItemRiskStage1(item, ansStage1[item.id]);
+    const pt1 = ansStage1[item.id] ? (r1 ? "1 pt (Risco)" : "0 pt") : "-";
+    const a2 = r1 ? (ansStage2[item.id] || "Pendente") : "-";
+    return [String(item.id), item.q, a1, pt1, a2];
+  });
+
+
+  doc.autoTable({
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [["#", "Questao Avaliada (M-CHAT-R)", "1a Etapa", "Pontuacao", "2a Etapa (R/F)"]],
+    body: tableBody,
+    theme: "grid",
+    styles: {
+      font: "helvetica",
+      fontSize: 8,
+      cellPadding: 1.8,
+      textColor: [15, 23, 42],
+      lineColor: [203, 213, 225],
+      lineWidth: 0.2
+    },
+    headStyles: {
+      fillColor: [15, 23, 42],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      halign: "center"
+    },
+    columnStyles: {
+      0: { cellWidth: 9, halign: "center", fontStyle: "bold" },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 20, halign: "center", fontStyle: "bold" },
+      3: { cellWidth: 22, halign: "center", fontStyle: "bold" },
+      4: { cellWidth: 25, halign: "center", fontStyle: "bold" }
+    },
+    didParseCell: function(data) {
+      if (data.section === "body" && data.column.index === 3) {
+        if (String(data.cell.raw).includes("1 pt")) {
+          data.cell.styles.textColor = [220, 38, 38];
+        } else if (String(data.cell.raw).includes("0 pt")) {
+          data.cell.styles.textColor = [22, 163, 74];
+        }
+      }
+    }
+  });
+
+
+  let finalY = doc.lastAutoTable.finalY + 12;
+  if (finalY > 272) {
+    doc.addPage();
+    finalY = 25;
+  }
+
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  const noteLines = doc.splitTextToSize(
+    "Nota Tecnica: O M-CHAT-R/F e um instrumento validado de triagem clinica para risco de TEA em criancas de 16 a 30 meses. A presenca de resultado positivo indica encaminhamento para avaliacao diagnostica especializada e avaliacao da necessidade de intervencao precoce.",
+    105
+  );
+  doc.text(noteLines, margin, finalY);
+
+
+  const sigX = pageWidth - margin - 68;
+  doc.setDrawColor(15, 23, 42);
+  doc.setLineWidth(0.3);
+  doc.line(sigX, finalY + 4, pageWidth - margin, finalY + 4);
+
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.2);
+  doc.setTextColor(15, 23, 42);
+  const sigText = doc.splitTextToSize(st.applicator, 68);
+  doc.text(sigText, sigX + 34, finalY + 8.5, { align: "center" });
+
+
+  const safeName = st.childName.replace(/[^a-zA-Z0-9_-]/g, "_") || "Crianca";
+  doc.save(`Relatorio_M-CHAT-RF_${safeName}.pdf`);
+}
+
+
+function openTab(n) {
+  document.getElementById("tabSection1").style.display = n === 1 ? "block" : "none";
+  document.getElementById("tabSection2").style.display = n === 2 ? "block" : "none";
+  document.getElementById("tabSection3").style.display = n === 3 ? "block" : "none";
+  document.getElementById("tabBtn1").classList.toggle("active", n === 1);
+  document.getElementById("tabBtn2").classList.toggle("active", n === 2);
+  document.getElementById("tabBtn3").classList.toggle("active", n === 3);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+
+function resetQuestionnaire() {
+  if (!confirm("Deseja limpar todas as respostas da consulta atual?")) return;
+  ansStage1 = {};
+  ansStage2 = {};
+  openExStage1 = {};
+  openExStage2 = {};
+  document.getElementById("inChildName").value = "";
+  document.getElementById("inInfOutros").value = "";
+  informants = { "Mãe": true, "Pai": false, "Responsável": false, "Outros": false };
+  document.getElementById("pillInfMae").classList.add("active");
+  document.getElementById("pillInfPai").classList.remove("active");
+  document.getElementById("pillInfResp").classList.remove("active");
+  document.getElementById("pillInfOutros").classList.remove("active");
+  document.getElementById("boxInfOutrosText").style.display = "none";
+  refreshUI();
+  openTab(1);
+}
+
+
+function copyTextSummary() {
+  const el = document.getElementById("outProntuarioText");
+  el.select();
+  navigator.clipboard.writeText(el.value);
+  alert("Resumo copiado para a área de transferência!");
+}
+
+
+refreshUI();
+</script>
+</body>
+</html>
